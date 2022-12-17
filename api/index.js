@@ -1,4 +1,5 @@
 const express = require('express');
+const multer = require('multer')
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -6,6 +7,21 @@ const exec = require('child_process').exec
 
 
 const router = express.Router();
+
+const storage = multer.diskStorage({
+    filename: (req, file, cb) => {
+        req.filename = file.originalname
+        cb(null, file.originalname)
+    },
+    destination: (req, file, cb) => {
+        
+        if(!fs.existsSync('/appFiles/'))
+            fs.mkdirSync('/appFiles/')
+        cb(null, "/appFiles")
+    }
+})
+const upload = multer({storage})
+const MODEL_PATH = "./model.ckpt";
 
 async function main() {
     let app = express();
@@ -26,27 +42,19 @@ async function main() {
 
 }
 
-router.get('/', (req, res, next) => {
+router.get('/', upload.single('file'), (req, res, next) => {
     let songName = req.query.songname;
     let artist = req.query.artist;
 
+    if(!fs.existsSync('/appFiles/'))
+        fs.mkdirSync('/appFiles/')
+
     let fileName = artist + " - " + songName;
-    let filePath = "./" + fileName
-
-    let mp3File = fs.createWriteStream(filePath);
-
-    mp3File.on('open', () => {
-        req.on('data', (data) => {
-            console.log('getting data')
-            mp3File.write(data);
-        })
-        req.on('end', () => {
-            console.log("download finished");
-            mp3File.end();
-            exec('python scripts/pred.py --num_samples 1 --sample_steps 128 --title ' + songName + ' --artist ' + artist);
-            res.sendFile(filePath);
-        })
-    })
+    let filePath = "/appFiles/" + req.fileName
+    
+    exec('python scripts/pred.py --num_samples 1 --sample_steps 128 --title ' + songName + ' --artist ' + artist + " " + MODEL_PATH + " " + filePath);
+    res.sendStatus(200);
+    
 })
 
 main();

@@ -1,23 +1,34 @@
 #using the version of python actually used by colab
-FROM python:3.8.16-alpine
+FROM python:3.9
 
 WORKDIR /app
 
+RUN apt update
 #install ffmpeg
-RUN apk add  --no-cache ffmpeg
+#RUN apk add  --no-cache ffmpeg
+RUN apt install -y ffmpeg
 
 #copy the working dir
 COPY . .
 
-#move the API directory to the main directory, easier to work with 
-RUN mv ./api/ ./
-
 #install the dependencies
-RUN pip install ./osu-dreamer
+RUN pip install .
+
+#move the API directory to the main directory, easier to work with 
+RUN mv ./api/* ./
 
 #TODO: replace with a model trained on a given dataset(maybe a volume?)
 #get a model to run
 RUN curl  https://huggingface.co/jaswon/osu-dreamer/resolve/main/v4-1077.ckpt -o ./model.ckpt
+
+#set up node version
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash
+
+#install nodejs
+RUN apt install nodejs
+
+#npm ci, so it will use the package-lock versions
+RUN npm ci
 
 EXPOSE 3000
 

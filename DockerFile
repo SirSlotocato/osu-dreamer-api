@@ -1,0 +1,24 @@
+#using the version of python actually used by colab
+FROM python:3.8.16-alpine
+
+WORKDIR /app
+
+#install ffmpeg
+RUN apk add  --no-cache ffmpeg
+
+#copy the working dir
+COPY . .
+
+#move the API directory to the main directory, easier to work with 
+RUN mv ./api/ ./
+
+#install the dependencies
+RUN pip install ./osu-dreamer
+
+#TODO: replace with a model trained on a given dataset(maybe a volume?)
+#get a model to run
+RUN curl  https://huggingface.co/jaswon/osu-dreamer/resolve/main/v4-1077.ckpt -o ./model.ckpt
+
+EXPOSE 3000
+
+CMD ["npm", "run", "api"]
